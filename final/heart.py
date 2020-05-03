@@ -13,6 +13,7 @@ import pandas as pd
 train_file = open("train.csv")
 train_file = list(train_file)
 train_file.remove(train_file[0])
+train_dic = {}
 count = 0
 for data in train_file:
     train_file[count] = data.split(',')
@@ -23,9 +24,20 @@ for data in train_file:
             train_file[count][i] = float(train_file[count][i])
     count+=1
 
-#df = pd.DataFrame(train_dic.items(),columns=['Drug', 'Active'])
-#
-#X = df['Factors']
-#y = df['Positive']
-#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
+
+def arrToDict(file):
+    temp_dictionary = {}
+    for data in file:
+        temp_arr = []
+        for j in range(len(data)-1):
+            temp_arr.append(data[j])
+        temp_dictionary[tuple(temp_arr)] = data[len(data)-1]
+    return temp_dictionary
+
+train_dic = arrToDict(train_file)
+df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
+
+X = df['Factors']
+y = df['Label']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
 
