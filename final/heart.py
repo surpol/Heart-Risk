@@ -3,7 +3,7 @@
 """
 Created on Sat May  2 17:18:14 2020
 
-@author: suryapolina
+@author: suryapolina ramkammari
 """
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -24,7 +24,7 @@ for data in train_file:
             train_file[count][i] = float(train_file[count][i])
     count+=1
 
-
+#train_file into dictionary where value is label and keys are health factors
 def arrToDict(file):
     temp_dictionary = {}
     for data in file:
@@ -35,6 +35,7 @@ def arrToDict(file):
     return temp_dictionary
 
 train_dic = arrToDict(train_file)
+
 df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
 
 X = df['Factors']
