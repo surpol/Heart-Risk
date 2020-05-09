@@ -13,7 +13,7 @@ from sklearn.linear_model import Perceptron
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
-#from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE
 from sklearn.cluster import KMeans
 from sklearn.metrics import f1_score
 from numpy import dot
@@ -24,6 +24,12 @@ from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 from sklearn import svm
 import time
+from sklearn.metrics import classification_report
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 #make train_file into dictionary where key is health params and value is label 
 def arrToDict(file):
     temp_dictionary = {}
@@ -32,7 +38,16 @@ def arrToDict(file):
         for j in range(len(data)-1):
             temp_arr.append(data[j])
         temp_dictionary[tuple(temp_arr)] = data[len(data)-1]
+        
     return temp_dictionary
+
+sf = pd.read_csv('train.csv')
+sf.head(16)
+healthy = sf[(sf['TenYearCHD'] ==0) ].count()[1]
+sick = sf[(sf['TenYearCHD'] ==1) ].count()[1]
+print("\n\nBEFORE OVERSAMPLED DATA BELOW:")
+print ("num of people without heart deacise: "+ str(healthy))
+print ("num of people with chance for heart deacise: "+ str(sick))
 
 train_file = open("train.csv")
 train_file = list(train_file)
@@ -43,21 +58,32 @@ for data in train_file:
     train_file[count] = data.split(',')
     for i in range(len(train_file[count])):
         if train_file[count][i] == "NA":
-            print(str(i) + "\n")
+            #print(str(i) + "\n")
             train_file[count][i] = -1.0 #if data is NA
         else:
             train_file[count][i] = float(train_file[count][i])
     train_file[count].remove(train_file[count][14]) #removed glucose parameter
+
     count+=1
+
 
 
 train_dic = arrToDict(train_file)
 
-df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
+#Add synthetic copies of minority sample (Patients at Risk)
+sm = SMOTE(kind = "svm") 
+train_file, y_res = sm.fit_sample(train_file, list(train_dic.values()))
+train_dic = arrToDict(train_file)
 
+df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
+healthy = df[(df['Label'] ==0) ].count()[1]
+sick = df[(df['Label'] ==1) ].count()[1]
+print("\nOVERSAMPLED DATA BELOW:")
+print ("num of people without heart deacise: "+ str(healthy))
+print ("num of people with chance for heart deacise: "+ str(sick) + "\n\n")
 X = df['Factors']
 y = df['Label']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.15)
 
 start_time = time.time()
 #preprocessing
@@ -95,12 +121,12 @@ dt = DecisionTreeClassifier(criterion="gini", splitter='best')
 dt.fit(list(X_train), y_train)
 prediction_decision = dt.predict(list(X_test))
 score_decision = dt.score(list(X_test), y_test)
-f1_decision = f1_score(y_test, prediction_decision, average='macro')
+f1_decision = f1_score(y_test, prediction_decision,average=None)
 time_decision = (time.time() - start_time)
 
 #random forest
 start_time = time.time()
-rf = RandomForestClassifier()
+rf = RandomForestClassifier(class_weight='balanced')
 rf.fit(list(X_train), y_train)
 prediction_random_forest = rf.predict(list(X_test))
 score_random_forest = rf.score(list(X_test), y_test)
