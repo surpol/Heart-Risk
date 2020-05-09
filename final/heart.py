@@ -15,9 +15,21 @@ from sklearn.naive_bayes import BernoulliNB
 from sklearn.ensemble import RandomForestClassifier
 from imblearn.over_sampling import SMOTE
 from sklearn.cluster import KMeans
+from sklearn.metrics import f1_score
 from numpy import dot
 from numpy.linalg import norm
+from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.decomposition import KernelPCA
 from sklearn import svm
+import time
+from sklearn.metrics import classification_report
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 #make train_file into dictionary where key is health params and value is label 
 def arrToDict(file):
     temp_dictionary = {}
@@ -26,7 +38,16 @@ def arrToDict(file):
         for j in range(len(data)-1):
             temp_arr.append(data[j])
         temp_dictionary[tuple(temp_arr)] = data[len(data)-1]
+        
     return temp_dictionary
+
+sf = pd.read_csv('train.csv')
+sf.head(16)
+healthy = sf[(sf['TenYearCHD'] ==0) ].count()[1]
+sick = sf[(sf['TenYearCHD'] ==1) ].count()[1]
+print("\n\nBEFORE OVERSAMPLED DATA BELOW:")
+print ("num of people without heart deacise: "+ str(healthy))
+print ("num of people with chance for heart deacise: "+ str(sick))
 
 train_file = open("train.csv")
 train_file = list(train_file)
@@ -37,62 +58,115 @@ for data in train_file:
     train_file[count] = data.split(',')
     for i in range(len(train_file[count])):
         if train_file[count][i] == "NA":
-            print(str(i) + "\n")
+            #print(str(i) + "\n")
             train_file[count][i] = -1.0 #if data is NA
         else:
             train_file[count][i] = float(train_file[count][i])
     train_file[count].remove(train_file[count][14]) #removed glucose parameter
+
     count+=1
+
 
 
 train_dic = arrToDict(train_file)
 
-df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
+#Add synthetic copies of minority sample (Patients at Risk)
+sm = SMOTE(kind = "svm") 
+train_file, y_res = sm.fit_sample(train_file, list(train_dic.values()))
+train_dic = arrToDict(train_file)
 
+df = pd.DataFrame(train_dic.items(),columns=['Factors', 'Label'])
+healthy = df[(df['Label'] ==0) ].count()[1]
+sick = df[(df['Label'] ==1) ].count()[1]
+print("\nOVERSAMPLED DATA BELOW:")
+print ("num of people without heart deacise: "+ str(healthy))
+print ("num of people with chance for heart deacise: "+ str(sick) + "\n\n")
 X = df['Factors']
 y = df['Label']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.15)
+
+start_time = time.time()
+#preprocessing
+
+#PCA
+#X_train = PCA(n_components = 12).fit_transform(list(X_train))
+#X_test = PCA(n_components = 12).fit_transform(list(X_test)) 
+
+#KernelPCA
+#X_train = KernelPCA(n_components = 20).fit_transform(list(X_train))
+#X_test = KernelPCA(n_components = 20).fit_transform(list(X_test)) 
+
+#Standardization
+#X_train = StandardScaler().fit_transform(list(X_train))
+#X_test = StandardScaler().fit_transform(list(X_test)) 
+
+#Normalization
+X_train = Normalizer().fit_transform(list(X_train))
+X_test = Normalizer().fit_transform(list(X_test)) 
+
+time_preprocess = (time.time() - start_time)
 
 #KNN
+start_time = time.time()
 knn = KNeighborsClassifier(n_neighbors = 100)
 knn.fit(list(X_train), y_train)
 prediction = knn.predict(list(X_test))
 score_knn = knn.score(list(X_test), y_test)
+f1_knn = f1_score(y_test, prediction, average='macro')
+time_knn = (time.time() - start_time)
 
 #decision tree #consistently 73%-78%
+start_time = time.time()
 dt = DecisionTreeClassifier(criterion="gini", splitter='best')
 dt.fit(list(X_train), y_train)
 prediction_decision = dt.predict(list(X_test))
 score_decision = dt.score(list(X_test), y_test)
+f1_decision = f1_score(y_test, prediction_decision,average=None)
+time_decision = (time.time() - start_time)
 
 #random forest
-rf = RandomForestClassifier()
+start_time = time.time()
+rf = RandomForestClassifier(class_weight='balanced')
 rf.fit(list(X_train), y_train)
 prediction_random_forest = rf.predict(list(X_test))
 score_random_forest = rf.score(list(X_test), y_test)
+f1_random_forest = f1_score(y_test, prediction_random_forest, average='macro')
+time_random_forest = (time.time() - start_time)
 
 #Percepton
+start_time = time.time()
 perc = Perceptron(random_state=3) #inconsistent ranges 20%-85%
 perc.fit(list(X_train), y_train)
 prediction_perceptron = perc.predict(list(X_test))
 score_perceptron = perc.score(list(X_test), y_test)
+f1_perceptron = f1_score(y_test, prediction_perceptron, average='macro')
+time_perceptron = (time.time() - start_time)
 
 #BernoulliNB
+start_time = time.time()
 bnb = BernoulliNB()
 bnb.fit(list(X_train), y_train)
 prediction_bernoulli = bnb.predict(list(X_test))
 score_bernoulli = bnb.score(list(X_test), y_test)
+f1_bernoulli = f1_score(y_test, prediction_bernoulli, average='macro')
+time_bernoulli = (time.time() - start_time)
 
 #GaussianNB
+start_time = time.time()
 gnb = GaussianNB()
 gnb.fit(list(X_train), y_train)
 prediction_gaussian = gnb.predict(list(X_test))
 score_gaussian = gnb.score(list(X_test), y_test)
+f1_gaussian = f1_score(y_test, prediction_gaussian, average='macro')
+time_gaussian = (time.time() - start_time)
 
 #SVM
+start_time = time.time()
 vector = svm.SVC()
 vector.fit(list(X_train), y_train)
 prediction_svm = vector.predict(list(X_test))
 score_svm = vector.score(list(X_test), y_test)
+f1_svm = f1_score(y_test, prediction_svm, average='macro')
+time_svm = (time.time() - start_time)
 
 
