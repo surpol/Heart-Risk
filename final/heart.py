@@ -23,6 +23,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 from sklearn import svm
+import time
 #make train_file into dictionary where key is health params and value is label 
 def arrToDict(file):
     temp_dictionary = {}
@@ -58,6 +59,7 @@ X = df['Factors']
 y = df['Label']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
 
+start_time = time.time()
 #preprocessing
 
 #PCA
@@ -76,53 +78,69 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.33)
 X_train = Normalizer().fit_transform(list(X_train))
 X_test = Normalizer().fit_transform(list(X_test)) 
 
+time_preprocess = (time.time() - start_time)
+
 #KNN
+start_time = time.time()
 knn = KNeighborsClassifier(n_neighbors = 100)
 knn.fit(list(X_train), y_train)
 prediction = knn.predict(list(X_test))
 score_knn = knn.score(list(X_test), y_test)
 f1_knn = f1_score(y_test, prediction, average='macro')
+time_knn = (time.time() - start_time)
 
 #decision tree #consistently 73%-78%
+start_time = time.time()
 dt = DecisionTreeClassifier(criterion="gini", splitter='best')
 dt.fit(list(X_train), y_train)
 prediction_decision = dt.predict(list(X_test))
 score_decision = dt.score(list(X_test), y_test)
 f1_decision = f1_score(y_test, prediction_decision, average='macro')
+time_decision = (time.time() - start_time)
 
 #random forest
+start_time = time.time()
 rf = RandomForestClassifier()
 rf.fit(list(X_train), y_train)
 prediction_random_forest = rf.predict(list(X_test))
 score_random_forest = rf.score(list(X_test), y_test)
 f1_random_forest = f1_score(y_test, prediction_random_forest, average='macro')
+time_random_forest = (time.time() - start_time)
 
 #Percepton
+start_time = time.time()
 perc = Perceptron(random_state=3) #inconsistent ranges 20%-85%
 perc.fit(list(X_train), y_train)
 prediction_perceptron = perc.predict(list(X_test))
 score_perceptron = perc.score(list(X_test), y_test)
 f1_perceptron = f1_score(y_test, prediction_perceptron, average='macro')
+time_perceptron = (time.time() - start_time)
 
 #BernoulliNB
+start_time = time.time()
 bnb = BernoulliNB()
 bnb.fit(list(X_train), y_train)
 prediction_bernoulli = bnb.predict(list(X_test))
 score_bernoulli = bnb.score(list(X_test), y_test)
 f1_bernoulli = f1_score(y_test, prediction_bernoulli, average='macro')
+time_bernoulli = (time.time() - start_time)
 
 #GaussianNB
+start_time = time.time()
 gnb = GaussianNB()
 gnb.fit(list(X_train), y_train)
 prediction_gaussian = gnb.predict(list(X_test))
 score_gaussian = gnb.score(list(X_test), y_test)
 f1_gaussian = f1_score(y_test, prediction_gaussian, average='macro')
+time_gaussian = (time.time() - start_time)
 
 #SVM
+start_time = time.time()
 vector = svm.SVC()
 vector.fit(list(X_train), y_train)
 prediction_svm = vector.predict(list(X_test))
 score_svm = vector.score(list(X_test), y_test)
 f1_svm = f1_score(y_test, prediction_svm, average='macro')
+time_svm = (time.time() - start_time)
 
 
