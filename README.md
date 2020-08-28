@@ -1,2 +1,2 @@
 # Heart-Risk
-Predicts heart disease risk based on health factors relating to heart disease using various classifier models and pre-processing techniques 
+Uses various classification models to predict one's risk of heart disease based on a criteria of health factors relating to heart disease.
